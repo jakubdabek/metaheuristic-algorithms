@@ -1,6 +1,8 @@
 use crate::assoc_fcs;
 use crate::problem::{Domain, Problem};
 use nalgebra::Vector4;
+use rand::distributions::Uniform;
+use rand::prelude::*;
 use std::ops::Mul;
 
 pub type Scalar = f64;
@@ -15,7 +17,9 @@ impl Domain for GriewankDomain {
     type Value = Scalar;
 
     fn random(scale: f32) -> Self::Argument {
-        unimplemented!()
+        let bound = into_scalar(scale * 600.0);
+        let dist = Uniform::new_inclusive(-bound, bound);
+        Vector4::from_distribution(&dist, &mut thread_rng())
     }
 }
 

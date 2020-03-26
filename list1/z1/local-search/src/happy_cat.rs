@@ -1,6 +1,8 @@
 use crate::assoc_fcs;
 use crate::problem::{Domain, Problem};
 use nalgebra::Vector4;
+use rand::distributions::Uniform;
+use rand::prelude::*;
 
 pub type Scalar = f64;
 fn into_scalar<T: Into<Scalar>>(value: T) -> Scalar {
@@ -14,7 +16,9 @@ impl Domain for HappyCatDomain {
     type Value = Scalar;
 
     fn random(scale: f32) -> Self::Argument {
-        unimplemented!()
+        let bound = into_scalar(scale * 2.0);
+        let dist = Uniform::new_inclusive(-bound, bound);
+        Vector4::from_distribution(&dist, &mut thread_rng())
     }
 }
 
