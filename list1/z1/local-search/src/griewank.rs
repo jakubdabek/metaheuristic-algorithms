@@ -1,5 +1,5 @@
-use nalgebra::Vector4;
 use crate::Problem;
+use nalgebra::Vector4;
 use std::ops::Mul;
 
 pub type Domain = f32;
@@ -47,8 +47,6 @@ mod tests {
 
     #[test]
     fn root() {
-        assert!(
-            Griewank::value(Vector4::new(0.0, 0.0, 0.0, 0.0)).abs() < std::f32::EPSILON
-        )
+        assert!(Griewank::value(Vector4::new(0.0, 0.0, 0.0, 0.0)).abs() < std::f32::EPSILON);
     }
 }

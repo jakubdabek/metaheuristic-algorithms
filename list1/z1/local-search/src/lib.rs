@@ -5,5 +5,5 @@ trait Problem {
     fn value(argument: Self::Domain) -> Self::CoDomain;
 }
 
-mod happy_cat;
 mod griewank;
+mod happy_cat;
