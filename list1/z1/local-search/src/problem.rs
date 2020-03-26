@@ -9,7 +9,8 @@ pub trait Domain {
     type Argument;
     type Value: PartialOrd;
 
-    fn random(scale: f32) -> Self::Argument;
+    fn random(scale: f64) -> Self::Argument;
+    fn random_near(point: Self::Argument, scale: f64) -> Self::Argument;
 }
 
 pub trait Problem {

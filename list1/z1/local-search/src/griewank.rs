@@ -1,9 +1,8 @@
 use crate::assoc_fcs;
+use crate::common::{random_vector4, random_vector4_near};
 use crate::problem::{Domain, Problem};
 use nalgebra::Vector4;
-use rand::distributions::Uniform;
-use rand::prelude::*;
-use std::ops::Mul;
+use std::ops::{Mul, RangeInclusive};
 
 pub type Scalar = f64;
 fn into_scalar<T: Into<Scalar>>(value: T) -> Scalar {
@@ -11,15 +10,18 @@ fn into_scalar<T: Into<Scalar>>(value: T) -> Scalar {
 }
 
 pub struct GriewankDomain;
+const DOMAIN_BOUNDS: RangeInclusive<Scalar> = -600.0..=600.0;
 
 impl Domain for GriewankDomain {
     type Argument = Vector4<Scalar>;
     type Value = Scalar;
 
-    fn random(scale: f32) -> Self::Argument {
-        let bound = into_scalar(scale * 600.0);
-        let dist = Uniform::new_inclusive(-bound, bound);
-        Vector4::from_distribution(&dist, &mut thread_rng())
+    fn random(scale: f64) -> Self::Argument {
+        random_vector4(DOMAIN_BOUNDS, scale)
+    }
+
+    fn random_near(point: Self::Argument, scale: f64) -> Self::Argument {
+        random_vector4_near(DOMAIN_BOUNDS, point, scale)
     }
 }
 
