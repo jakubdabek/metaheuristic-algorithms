@@ -1,9 +1,9 @@
-trait Problem {
-    type Domain;
-    type CoDomain: PartialOrd;
-
-    fn value(argument: Self::Domain) -> Self::CoDomain;
-}
+use crate::problem::Problem;
 
 mod griewank;
 mod happy_cat;
+mod problem;
+
+fn search<P: Problem>() {
+    unimplemented!()
+}

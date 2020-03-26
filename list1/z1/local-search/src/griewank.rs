@@ -1,10 +1,22 @@
-use crate::Problem;
+use crate::assoc_fcs;
+use crate::problem::{Domain, Problem};
 use nalgebra::Vector4;
 use std::ops::Mul;
 
-pub type Domain = f32;
-fn into_domain<T: Into<Domain>>(value: T) -> Domain {
+pub type Scalar = f64;
+fn into_scalar<T: Into<Scalar>>(value: T) -> Scalar {
     value.into()
+}
+
+pub struct GriewankDomain;
+
+impl Domain for GriewankDomain {
+    type Argument = Vector4<Scalar>;
+    type Value = Scalar;
+
+    fn random(scale: f32) -> Self::Argument {
+        unimplemented!()
+    }
 }
 
 pub const NUM_DIMENSIONS: u8 = 4;
@@ -19,23 +31,24 @@ where
 }
 
 impl Problem for Griewank {
-    type Domain = Vector4<Domain>;
-    type CoDomain = Domain;
+    type Domain = GriewankDomain;
 
-    fn value(argument: Self::Domain) -> Self::CoDomain {
+    fn value(
+        argument: assoc_fcs!(Problem->Domain->Argument),
+    ) -> assoc_fcs!(Problem->Domain->Value) {
         let norm2 = argument.norm_squared(); // sum of squares of components
         let minuend = norm2 / 4000.0;
         let inv_squares = (1..=NUM_DIMENSIONS)
-            .map(into_domain)
-            .map(Domain::sqrt)
-            .map(Domain::recip);
+            .map(into_scalar)
+            .map(Scalar::sqrt)
+            .map(Scalar::recip);
         let subtrahend = argument
             .iter()
             .copied()
             .zip(inv_squares)
-            .map(uncurry(Domain::mul))
-            .map(Domain::cos)
-            .product::<Domain>();
+            .map(uncurry(Scalar::mul))
+            .map(Scalar::cos)
+            .product::<Scalar>();
 
         1.0 + minuend - subtrahend
     }
@@ -47,6 +60,6 @@ mod tests {
 
     #[test]
     fn root() {
-        assert!(Griewank::value(Vector4::new(0.0, 0.0, 0.0, 0.0)).abs() < std::f32::EPSILON);
+        assert!(Griewank::value(Vector4::new(0.0, 0.0, 0.0, 0.0)).abs() < std::f64::EPSILON);
     }
 }
