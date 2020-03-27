@@ -1,6 +1,9 @@
-use local_search::griewank::Griewank;
-use local_search::happy_cat::HappyCat;
-use local_search::problem::{Problem, ProblemArgument, ProblemValue};
+use ::z1::{
+    local_search,
+    local_search::griewank::Griewank,
+    local_search::happy_cat::HappyCat,
+    local_search::problem::{Problem, ProblemArgument, ProblemValue},
+};
 use std::io::Read;
 use std::ops::Add;
 use std::time::{Duration, Instant};

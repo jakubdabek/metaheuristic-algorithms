@@ -1,5 +1,5 @@
-use crate::common::{random_vector4, random_vector4_near};
-use crate::problem::{Domain, Problem, ProblemArgument, ProblemValue};
+use crate::local_search::common::{random_vector4, random_vector4_near};
+use crate::local_search::problem::{Domain, Problem, ProblemArgument, ProblemValue};
 use nalgebra::Vector4;
 use std::ops::RangeInclusive;
 

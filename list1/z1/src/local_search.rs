@@ -1,4 +1,5 @@
-use crate::problem::{Domain, Problem};
+use crate::assoc_fcs;
+use problem::{Domain, Problem};
 use std::cmp::Ordering;
 use std::time::Instant;
 
