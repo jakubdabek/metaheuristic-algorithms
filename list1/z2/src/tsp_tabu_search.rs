@@ -5,7 +5,7 @@ use std::fmt;
 use std::io::BufRead;
 use std::time::Duration;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Solver {
     distances: Array2<u32>,
     time_limit: Duration,
@@ -116,56 +116,56 @@ mod tests {
         fn create_err_parse_time() {
             let input = "a 2\n0 1\n1 0";
             let res = Solver::try_from_read(Cursor::new(input));
-            assert_eq!(res, Err(SolverCreationError::InvalidHeader))
+            assert_eq!(res.err(), Some(SolverCreationError::InvalidHeader))
         }
 
         #[test]
         fn create_err_parse_n() {
             let input = "1 a\n0 1\n1 0";
             let res = Solver::try_from_read(Cursor::new(input));
-            assert_eq!(res, Err(SolverCreationError::InvalidHeader))
+            assert_eq!(res.err(), Some(SolverCreationError::InvalidHeader))
         }
 
         #[test]
         fn create_err_0_seconds() {
             let input = "0 2\n0 1\n1 0";
             let res = Solver::try_from_read(Cursor::new(input));
-            assert_eq!(res, Err(SolverCreationError::InvalidHeader))
+            assert_eq!(res.err(), Some(SolverCreationError::InvalidHeader))
         }
 
         #[test]
         fn create_err_not_enough_lines() {
             let input = "1 2\n0 1";
             let res = Solver::try_from_read(Cursor::new(input));
-            assert_eq!(res, Err(SolverCreationError::NotEnoughLines))
+            assert_eq!(res.err(), Some(SolverCreationError::NotEnoughLines))
         }
 
         #[test]
         fn create_err_too_many_lines() {
             let input = "1 2\n0 1\n1 0\n1 1";
             let res = Solver::try_from_read(Cursor::new(input));
-            assert_eq!(res, Err(SolverCreationError::TooManyLines))
+            assert_eq!(res.err(), Some(SolverCreationError::TooManyLines))
         }
 
         #[test]
         fn create_err_line_parse() {
             let input = "1 2\na 1\n1 0";
             let res = Solver::try_from_read(Cursor::new(input));
-            assert_eq!(res, Err(SolverCreationError::InvalidLine))
+            assert_eq!(res.err(), Some(SolverCreationError::InvalidLine))
         }
 
         #[test]
         fn create_err_line_too_many() {
             let input = "1 2\n0 1 2\n1 0";
             let res = Solver::try_from_read(Cursor::new(input));
-            assert_eq!(res, Err(SolverCreationError::InvalidLine))
+            assert_eq!(res.err(), Some(SolverCreationError::InvalidLine))
         }
 
         #[test]
         fn create_err_line_not_enough() {
             let input = "1 2\n0\n1 0";
             let res = Solver::try_from_read(Cursor::new(input));
-            assert_eq!(res, Err(SolverCreationError::InvalidLine))
+            assert_eq!(res.err(), Some(SolverCreationError::InvalidLine))
         }
     }
 }
