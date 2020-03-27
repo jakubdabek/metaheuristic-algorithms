@@ -1,6 +1,5 @@
-use crate::assoc_fcs;
 use crate::common::{random_vector4, random_vector4_near};
-use crate::problem::{Domain, Problem};
+use crate::problem::{Domain, Problem, ProblemArgument, ProblemValue};
 use nalgebra::Vector4;
 use std::ops::RangeInclusive;
 
@@ -20,7 +19,7 @@ impl Domain for HappyCatDomain {
         random_vector4(DOMAIN_BOUNDS, scale)
     }
 
-    fn random_near(point: Self::Argument, scale: f64) -> Self::Argument {
+    fn random_near(point: &Self::Argument, scale: f64) -> Self::Argument {
         random_vector4_near(DOMAIN_BOUNDS, point, scale)
     }
 }
@@ -33,11 +32,12 @@ pub struct HappyCat;
 impl Problem for HappyCat {
     type Domain = HappyCatDomain;
 
-    fn value(
-        argument: assoc_fcs!(Problem->Domain->Argument),
-    ) -> assoc_fcs!(Problem->Domain->Value) {
+    fn value(argument: &ProblemArgument<Self>) -> ProblemValue<Self> {
         let norm2 = argument.norm_squared();
-        let first_addend = Scalar::powf(norm2 - into_scalar(NUM_DIMENSIONS), 2.0 * ALPHA);
+        let first_addend = Scalar::powf(
+            Scalar::abs(norm2 - into_scalar(NUM_DIMENSIONS)),
+            2.0 * ALPHA,
+        );
         let num_dimensions_inv = into_scalar(NUM_DIMENSIONS).recip();
         let second_addend = num_dimensions_inv * (0.5 * norm2 + argument.sum());
 

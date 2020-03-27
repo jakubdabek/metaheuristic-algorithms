@@ -1,5 +1,5 @@
 [package]
-name = "list1"
+name = "z1"
 version = "0.1.0"
 authors = ["Jakub Dąbek <jakub.dabek@gmail.com>"]
 edition = "2018"
@@ -13,4 +13,3 @@ members = [
 
 [dependencies]
 local-search = { path = "./local-search" }
-clap = { git = "https://github.com/clap-rs/clap/" }

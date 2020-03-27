@@ -1,6 +1,5 @@
-use crate::assoc_fcs;
 use crate::common::{random_vector4, random_vector4_near};
-use crate::problem::{Domain, Problem};
+use crate::problem::{Domain, Problem, ProblemArgument, ProblemValue};
 use nalgebra::Vector4;
 use std::ops::{Mul, RangeInclusive};
 
@@ -20,7 +19,7 @@ impl Domain for GriewankDomain {
         random_vector4(DOMAIN_BOUNDS, scale)
     }
 
-    fn random_near(point: Self::Argument, scale: f64) -> Self::Argument {
+    fn random_near(point: &Self::Argument, scale: f64) -> Self::Argument {
         random_vector4_near(DOMAIN_BOUNDS, point, scale)
     }
 }
@@ -39,9 +38,7 @@ where
 impl Problem for Griewank {
     type Domain = GriewankDomain;
 
-    fn value(
-        argument: assoc_fcs!(Problem->Domain->Argument),
-    ) -> assoc_fcs!(Problem->Domain->Value) {
+    fn value(argument: &ProblemArgument<Self>) -> ProblemValue<Self> {
         let norm2 = argument.norm_squared(); // sum of squares of components
         let minuend = norm2 / 4000.0;
         let inv_squares = (1..=NUM_DIMENSIONS)
