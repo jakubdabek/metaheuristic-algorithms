@@ -51,6 +51,6 @@ mod tests {
 
     #[test]
     fn root() {
-        assert!(HappyCat::value(Vector4::new(-1.0, -1.0, -1.0, -1.0)).abs() < std::f64::EPSILON);
+        assert!(HappyCat::value(&Vector4::new(-1.0, -1.0, -1.0, -1.0)).abs() < std::f64::EPSILON);
     }
 }

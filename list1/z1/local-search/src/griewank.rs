@@ -63,6 +63,6 @@ mod tests {
 
     #[test]
     fn root() {
-        assert!(Griewank::value(Vector4::new(0.0, 0.0, 0.0, 0.0)).abs() < std::f64::EPSILON);
+        assert!(Griewank::value(&Vector4::new(0.0, 0.0, 0.0, 0.0)).abs() < std::f64::EPSILON);
     }
 }
