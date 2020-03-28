@@ -4,7 +4,7 @@ use rand::prelude::*;
 use std::iter::FromIterator;
 use std::ops::Index;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub(crate) struct Path {
     nodes: Vec<NodeIndex>,
 }
@@ -31,6 +31,12 @@ impl Index<usize> for PathWithCost {
     }
 }
 
+impl AsRef<Path> for PathWithCost {
+    fn as_ref(&self) -> &Path {
+        self.inner()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct NeighbourSwapNodes<'a> {
     original: &'a PathWithCost,
@@ -51,12 +57,28 @@ impl Path {
 }
 
 impl PathWithCost {
+    pub fn cost(&self) -> Cost {
+        self.cost
+    }
+
     pub fn inner(&self) -> &Path {
         &self.path
     }
 
     pub fn into_inner(self) -> Path {
         self.path
+    }
+
+    pub fn into_solution(self) -> super::Solution {
+        let mut nodes = self.path.nodes;
+        for node in nodes.iter_mut() {
+            *node += 1;
+        }
+
+        super::Solution {
+            path: nodes,
+            cost: self.cost,
+        }
     }
 
     pub fn from_path(path: Path, costs: &CostMatrix) -> Self {
@@ -71,19 +93,28 @@ impl PathWithCost {
     }
 
     pub fn neighbour_swap_nodes(&self, i: usize, j: usize) -> NeighbourSwapNodes<'_> {
-        let mut new_path = self.inner().clone();
+        NeighbourSwapNodes::from_path_with_cost(self, i, j)
+    }
+}
+
+impl<'a> NeighbourSwapNodes<'a> {
+    pub fn from_path_with_cost(path: &'a PathWithCost, i: usize, j: usize) -> Self {
+        debug_assert!(j > i);
+        let mut new_path = path.inner().clone();
         new_path.nodes.swap(i, j);
 
-        NeighbourSwapNodes {
-            original: self,
+        Self {
+            original: path,
             i,
             j,
             swapped: new_path,
         }
     }
-}
 
-impl NeighbourSwapNodes<'_> {
+    pub fn as_path(&self) -> &Path {
+        &self.swapped
+    }
+
     pub fn into_path_with_cost(self, costs: &CostMatrix) -> PathWithCost {
         let Self {
             original,
@@ -92,15 +123,28 @@ impl NeighbourSwapNodes<'_> {
             swapped,
         } = self;
 
-        let cost_from_to = |x, y| {
-            costs[[original[i - 1], original[x]]]
-                + costs[[original[x], original[i + 1]]]
-                + costs[[original[j - 1], original[y]]]
-                + costs[[original[y], original[j + 1]]]
-        };
+        let (obsolete_cost, new_cost) = if j == i + 1 {
+            let cost_consecutive = |a, b, c, d| {
+                costs[[original[a], original[b]]]
+                    + costs[[original[b], original[c]]]
+                    + costs[[original[c], original[d]]]
+            };
 
-        let obsolete_cost = cost_from_to(i, j);
-        let new_cost = cost_from_to(j, i);
+            let obsolete = cost_consecutive(i - 1, i, j, j + 1);
+            let new = cost_consecutive(i - 1, j, i, j + 1);
+
+            (obsolete, new)
+        } else {
+            let cost_through = |old, new| {
+                costs[[original[old - 1], original[new]]]
+                    + costs[[original[new], original[old + 1]]]
+            };
+
+            let obsolete = cost_through(i, i) + cost_through(j, j);
+            let new = cost_through(i, j) + cost_through(j, i);
+
+            (obsolete, new)
+        };
 
         PathWithCost {
             path: swapped,

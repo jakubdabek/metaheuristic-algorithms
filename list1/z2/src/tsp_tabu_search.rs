@@ -1,15 +1,19 @@
 use itertools::Itertools;
 use ndarray::prelude::*;
+use rand::distributions::Uniform;
+use rand::prelude::*;
+use std::collections::{BTreeSet, HashSet};
 use std::convert::TryInto;
 use std::fmt;
 use std::io::BufRead;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 mod path;
 
 type Cost = usize;
 type NodeIndex = usize;
 type CostMatrix = Array2<Cost>;
+type TabuCollection = BTreeSet<path::Path>;
 
 #[derive(Debug, Clone)]
 pub struct Solver {
@@ -32,10 +36,80 @@ impl Solver {
 
     pub fn search(&self) -> Solution {
         use path::*;
+        let start_time = Instant::now();
 
-        let start = Path::new_random(self.distances.ncols());
+        let costs = &self.distances;
+        let n = costs.ncols();
+        // let mut tabu = TabuCollection::with_capacity(100 * n);
+        let mut tabu = TabuCollection::new();
+        let mut outer_tabu = TabuCollection::new();
 
-        unimplemented!()
+        let mut best = {
+            let first = Path::new_random(n);
+            PathWithCost::from_path(first, costs)
+        };
+
+        let mut iters = 1;
+
+        let local_starts = std::iter::once(best.clone()).chain(std::iter::from_fn(|| {
+            let elapsed = start_time.elapsed();
+            eprintln!("{:?}, {:?}", elapsed, elapsed / iters);
+            iters += 1;
+
+            if elapsed < self.time_limit {
+                let new = Path::new_random(n);
+                Some(PathWithCost::from_path(new, costs))
+            } else {
+                None
+            }
+        }));
+
+        let mut tmp_vec = Vec::<PathWithCost>::with_capacity(n * (n - 1) / 2);
+
+        for local_start in local_starts {
+            eprintln!("{}", tabu.len());
+            tabu.clear();
+            tabu.insert(local_start.inner().clone());
+            let mut current = local_start;
+            let mut current_best = current.clone();
+            for _ in 0..500 {
+                let neighbourhood = (1..n)
+                    .tuple_combinations()
+                    .map(|(i, j)| current.neighbour_swap_nodes(i, j))
+                    .filter(|p| !outer_tabu.contains(p.as_path()))
+                    .filter(|p| !tabu.contains(p.as_path()));
+
+                tmp_vec.clear();
+                tmp_vec.extend(neighbourhood.map(|nsn| nsn.into_path_with_cost(costs)));
+
+                let local_opt = tmp_vec.iter().min_by_key(|p| p.cost()).cloned();
+
+                let randoms = thread_rng().sample_iter(Uniform::new_inclusive(0.0, 1.0));
+                let tba = tmp_vec
+                    .drain(..)
+                    .zip(randoms)
+                    .filter(|(_, rand_val)| rand_val < &0.3)
+                    .map(|(p, _)| p.into_inner());
+                tabu.extend(tba);
+
+                if let Some(local_opt) = local_opt {
+                    if local_opt.cost() < current_best.cost() {
+                        current_best = local_opt.clone();
+                    }
+                    current = local_opt.clone();
+                    tabu.insert(local_opt.into_inner());
+                } else {
+                    break;
+                }
+            }
+
+            if current.cost() < best.cost() {
+                best = current;
+                outer_tabu.insert(best.inner().clone());
+            }
+        }
+
+        best.into_solution()
     }
 }
 
@@ -59,6 +133,8 @@ impl fmt::Display for SolverCreationError {
         }
     }
 }
+
+impl std::error::Error for SolverCreationError {}
 
 impl From<std::io::Error> for SolverCreationError {
     fn from(err: std::io::Error) -> Self {
