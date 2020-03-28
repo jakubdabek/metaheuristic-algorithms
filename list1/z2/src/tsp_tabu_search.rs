@@ -72,7 +72,7 @@ impl Solver {
             tabu.insert(local_start.inner().clone());
             let mut current = local_start;
             let mut current_best = current.clone();
-            for _ in 0..500 {
+            for _ in 0..2000 {
                 let neighbourhood = (1..n)
                     .tuple_combinations()
                     .map(|(i, j)| current.neighbour_swap_nodes(i, j))
