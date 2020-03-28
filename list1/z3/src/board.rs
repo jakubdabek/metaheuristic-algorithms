@@ -74,30 +74,17 @@ impl Board {
 
             for (j, c) in line.iter().enumerate() {
                 match c {
-                    b'8' => {
-                        if !on_edge(i, j) {
-                            return Err(InvalidLine);
-                        }
+                    b'8' if !on_edge(i, j) => return Err(InvalidLine),
+                    b'8' if goal.is_some() => return Err(InvalidGoal),
+                    b'8' => goal = Some(Point::new(j, i)),
 
-                        if goal.is_some() {
-                            return Err(InvalidGoal);
-                        } else {
-                            goal = Some(Point::new(j, i));
-                        }
-                    }
-                    b'5' => {
-                        if on_edge(i, j) {
-                            return Err(InvalidLine);
-                        }
+                    b'5' if on_edge(i, j) => return Err(InvalidLine),
+                    b'5' if agent.is_some() => return Err(InvalidGoal),
+                    b'5' => agent = Some(Point::new(j, i)),
 
-                        if agent.is_some() {
-                            return Err(InvalidAgent);
-                        } else {
-                            agent = Some(Point::new(j, i));
-                        }
-                    }
                     b'1' if on_edge(i, j) => (),
                     b'0' if !on_edge(i, j) => (),
+
                     _ => return Err(InvalidLine),
                 }
             }
