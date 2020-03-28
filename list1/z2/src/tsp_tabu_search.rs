@@ -5,18 +5,37 @@ use std::fmt;
 use std::io::BufRead;
 use std::time::Duration;
 
+mod path;
+
+type Cost = usize;
+type NodeIndex = usize;
+type CostMatrix = Array2<Cost>;
+
 #[derive(Debug, Clone)]
 pub struct Solver {
-    distances: Array2<u32>,
+    distances: CostMatrix,
     time_limit: Duration,
 }
 
+pub struct Solution {
+    pub path: Vec<NodeIndex>,
+    pub cost: usize,
+}
+
 impl Solver {
-    pub fn new(distances: Array2<u32>, time_limit: Duration) -> Self {
+    pub fn new(distances: CostMatrix, time_limit: Duration) -> Self {
         Self {
             distances,
             time_limit,
         }
+    }
+
+    pub fn search(&self) -> Solution {
+        use path::*;
+
+        let start = Path::new_random(self.distances.ncols());
+
+        unimplemented!()
     }
 }
 
@@ -65,7 +84,7 @@ impl Solver {
             _ => return Err(InvalidHeader),
         };
 
-        let mut matrix = Array2::zeros((n, n));
+        let mut matrix = CostMatrix::zeros((n, n));
 
         for zipped in matrix.outer_iter_mut().zip_longest(lines) {
             use itertools::EitherOrBoth::*;
@@ -76,7 +95,7 @@ impl Solver {
             };
 
             let line = line?;
-            let values = line.split_ascii_whitespace().map(str::parse::<u32>);
+            let values = line.split_ascii_whitespace().map(str::parse::<Cost>);
 
             row.iter_mut()
                 .zip_longest(values)
