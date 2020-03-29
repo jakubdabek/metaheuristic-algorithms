@@ -1,4 +1,5 @@
 use crate::point::Point;
+use crate::tabu_search::direction::{DIRECTIONS, Direction};
 use std::convert::TryInto;
 use std::fmt;
 use std::io::BufRead;
@@ -14,6 +15,10 @@ pub struct Board {
 impl Board {
     pub fn in_bounds(&self, point: Point) -> bool {
         point.x < self.bounds.x && point.y < self.bounds.y && point.x > 0 && point.y > 0
+    }
+
+    pub fn adjacent(&self, point: Point) -> impl Iterator<Item = (Direction, Point)> {
+        DIRECTIONS.iter().map(move |&x| (x, x.move_point(point)))
     }
 }
 
@@ -57,7 +62,7 @@ impl Board {
             .next()
             .ok_or(NotEnoughLines)??
             .split_ascii_whitespace()
-            .map(str::parse::<usize>)
+            .map(str::parse::<u64>)
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| InvalidHeader)?;
 
@@ -77,11 +82,11 @@ impl Board {
         for i in (0..n).rev() {
             let line: String = lines.next().ok_or(NotEnoughLines)??;
             let line = line.as_bytes();
-            if line.len() != m {
+            if line.len() as u64 != m {
                 return Err(InvalidLine);
             }
 
-            for (j, c) in line.iter().enumerate() {
+            for (c, j) in line.iter().zip(0..) {
                 match c {
                     b'8' if !on_edge(i, j) => return Err(InvalidGoal),
                     b'8' if in_corner(i, j) => return Err(InvalidGoal),
@@ -109,7 +114,7 @@ impl Board {
                 agent_position: agent,
                 goal_position: goal,
             },
-            Duration::from_secs(time.try_into().unwrap()),
+            Duration::from_secs(time),
         ))
     }
 }

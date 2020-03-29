@@ -2,13 +2,20 @@ use crate::board::Board;
 use crate::point::Point;
 use std::fmt;
 
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum Direction {
     Up,
     Down,
     Right,
     Left,
 }
+
+pub const DIRECTIONS: &[Direction] = &[
+    Direction::Left,
+    Direction::Up,
+    Direction::Right,
+    Direction::Down,
+];
 
 impl Direction {
     pub fn move_point(self, point: Point) -> Point {

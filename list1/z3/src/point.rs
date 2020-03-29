@@ -2,13 +2,13 @@ use std::ops::*;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct Point {
-    pub x: usize,
-    pub y: usize,
+    pub x: u64,
+    pub y: u64,
 }
 
 impl Point {
     #[inline]
-    pub fn new(x: usize, y: usize) -> Self {
+    pub fn new(x: u64, y: u64) -> Self {
         Self { x, y }
     }
 }
