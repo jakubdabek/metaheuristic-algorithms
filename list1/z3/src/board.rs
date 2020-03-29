@@ -1,6 +1,8 @@
 use crate::point::Point;
+use std::convert::TryInto;
 use std::fmt;
 use std::io::BufRead;
+use std::time::Duration;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Board {
@@ -41,7 +43,7 @@ impl From<std::io::Error> for BoardCreationError {
 }
 
 impl Board {
-    pub fn try_from_read<R: BufRead>(reader: R) -> Result<Board, BoardCreationError> {
+    pub fn try_from_read<R: BufRead>(reader: R) -> Result<(Board, Duration), BoardCreationError> {
         use BoardCreationError::*;
 
         let mut lines = reader.lines();
@@ -64,6 +66,7 @@ impl Board {
         let on_horizontal_edge = |i| i == n - 1 || i == 0;
         let on_vertical_edge = |j| j == 0 || j == m - 1;
         let on_edge = |i, j| on_horizontal_edge(i) || on_vertical_edge(j);
+        let in_corner = |i, j| on_horizontal_edge(i) && on_vertical_edge(j);
 
         for i in (0..n).rev() {
             let line: String = lines.next().ok_or(NotEnoughLines)??;
@@ -75,6 +78,7 @@ impl Board {
             for (j, c) in line.iter().enumerate() {
                 match c {
                     b'8' if !on_edge(i, j) => return Err(InvalidGoal),
+                    b'8' if in_corner(i, j) => return Err(InvalidGoal),
                     b'8' if goal.is_some() => return Err(InvalidGoal),
                     b'8' => goal = Some(Point::new(j, i)),
 
@@ -93,10 +97,13 @@ impl Board {
         let agent = agent.ok_or(InvalidAgent)?;
         let goal = goal.ok_or(InvalidGoal)?;
 
-        Ok(Board {
-            bounds: Point::new(m - 1, n - 1),
-            agent_position: agent,
-            goal_position: goal,
-        })
+        Ok((
+            Board {
+                bounds: Point::new(m - 1, n - 1),
+                agent_position: agent,
+                goal_position: goal,
+            },
+            Duration::from_secs(time.try_into().unwrap()),
+        ))
     }
 }
