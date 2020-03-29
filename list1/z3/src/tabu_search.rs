@@ -1,11 +1,10 @@
 use crate::board::Board;
 use crate::point::Point;
-use crate::tabu_search::direction::{Direction, DIRECTIONS};
+use crate::tabu_search::direction::DIRECTIONS;
 use crate::tabu_search::solution::{Solution, SolutionWithCost};
 use itertools::Itertools as _;
-use rand::distributions::Uniform;
-use rand::{random, thread_rng, Rng};
-use std::collections::{BTreeSet, VecDeque};
+use rand::prelude::*;
+use std::collections::BTreeSet;
 use std::convert::{identity, TryInto};
 use std::time::{Duration, Instant};
 
@@ -52,7 +51,7 @@ pub fn search(board: &Board, time_limit: Duration) -> SolutionWithCost {
     let mut tmp_vec = Vec::with_capacity(tabu_size.try_into().unwrap());
 
     let mut current = starting_solution(board);
-    // eprintln!("initial solution: {:?}", current);
+    eprintln!("initial solution: {:?}", current);
     let mut best_global = current.clone();
 
     let mut iters = 1;
@@ -68,6 +67,8 @@ pub fn search(board: &Board, time_limit: Duration) -> SolutionWithCost {
         }
     });
 
+    let mut fails = 0;
+
     for _ in limiter {
         let neighbours = current
             .solution
@@ -77,7 +78,11 @@ pub fn search(board: &Board, time_limit: Duration) -> SolutionWithCost {
             .take(tabu_size);
 
         tmp_vec.clear();
-        tmp_vec.extend(neighbours.map(|s| s.into_solution_with_cost(board)));
+        tmp_vec.extend(
+            neighbours
+                .map(|s| s.remove_redundancies())
+                .map(|s| s.into_solution_with_cost(board)),
+        );
 
         let best = tmp_vec
             .iter()
@@ -85,19 +90,30 @@ pub fn search(board: &Board, time_limit: Duration) -> SolutionWithCost {
             .min_by_key(|s| s.cost);
 
         if let Some(best) = best {
-            if best.cost < best_global.cost
-                || (best.cost == best_global.cost && thread_rng().gen_bool(0.3))
+            if best.cost < current.cost || (best.cost == current.cost && thread_rng().gen_bool(0.3))
             {
-                best_global = best.clone();
+                current = best.clone();
+            }
+            if current.cost < best_global.cost {
+                eprintln!("{:?} -> {:?}", best_global.cost, current.cost);
+                best_global = current.clone();
+            } else {
+                fails += 1;
             }
             tabu.clear();
+        } else {
+            fails += 5;
+        }
+
+        if fails > std::cmp::min(board.bounds.x, board.bounds.y) {
+            return best_global;
         }
 
         tabu.extend(
             tmp_vec
                 .drain(..)
                 .map(|s| s.map(|s| s.into_inner()).unwrap_or_else(identity)),
-        )
+        );
     }
 
     best_global

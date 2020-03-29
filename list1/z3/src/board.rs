@@ -1,6 +1,5 @@
 use crate::point::Point;
-use crate::tabu_search::direction::{DIRECTIONS, Direction};
-use std::convert::TryInto;
+use crate::tabu_search::direction::{Direction, DIRECTIONS};
 use std::fmt;
 use std::io::BufRead;
 use std::time::Duration;
