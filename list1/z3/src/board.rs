@@ -6,9 +6,15 @@ use std::time::Duration;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Board {
-    bounds: Point,
-    agent_position: Point,
-    goal_position: Point,
+    pub bounds: Point,
+    pub agent_position: Point,
+    pub goal_position: Point,
+}
+
+impl Board {
+    pub fn in_bounds(&self, point: Point) -> bool {
+        point.x < self.bounds.x && point.y < self.bounds.y && point.x > 0 && point.y > 0
+    }
 }
 
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
