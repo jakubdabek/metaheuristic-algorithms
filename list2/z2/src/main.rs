@@ -1,3 +1,5 @@
+#![allow(clippy::unit_arg)]
+
 use self::solver::Solver;
 use std::error::Error;
 use std::io::stdin;
@@ -13,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for row in solution.matrix.outer_iter() {
         for value in row {
-            eprint!("{} ", value);
+            eprint!("{:3} ", value);
         }
         eprintln!();
     }

@@ -1,9 +1,6 @@
 use crate::solver::block_matrix::BlockMatrix;
 use itertools::Itertools;
 use ndarray::prelude::*;
-use rand::distributions::Uniform;
-use rand::prelude::*;
-use std::collections::{BTreeSet, HashSet};
 use std::convert::TryInto;
 use std::fmt;
 use std::io::BufRead;
