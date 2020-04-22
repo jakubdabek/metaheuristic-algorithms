@@ -1,3 +1,4 @@
+use crate::solver::block_matrix::BlockMatrix;
 use itertools::Itertools;
 use ndarray::prelude::*;
 use rand::distributions::Uniform;
@@ -12,6 +13,8 @@ type Value = u8;
 type ValueMatrix = Array2<Value>;
 type Distance = f64;
 
+mod block_matrix;
+
 #[derive(Debug, Clone)]
 pub struct Solver {
     values: ValueMatrix,
@@ -24,6 +27,12 @@ pub struct Solution {
     pub distance: Distance,
 }
 
+impl Solution {
+    pub fn new(matrix: ValueMatrix, distance: Distance) -> Self {
+        Self { matrix, distance }
+    }
+}
+
 impl Solver {
     pub fn new(values: ValueMatrix, block_size: usize, time_limit: Duration) -> Self {
         Self {
@@ -34,7 +43,28 @@ impl Solver {
     }
 
     pub fn search(&self) -> Solution {
-        todo!()
+        let start_time = Instant::now();
+
+        let (h, w) = self.values.dim();
+        let values = &self.values;
+
+        let initial = BlockMatrix::zeros(self.block_size, self.block_size, h, w);
+        let mut best = Solution::new(
+            initial.to_full_size(values.raw_dim()),
+            initial.distance_from(values),
+        );
+
+        let mut current = initial;
+
+        while start_time.elapsed() < self.time_limit {
+            current = current.perturb_values();
+            let current_distance = current.distance_from(values);
+            if current_distance < best.distance {
+                best = Solution::new(current.to_full_size(values.raw_dim()), current_distance);
+            }
+        }
+
+        best
     }
 }
 
