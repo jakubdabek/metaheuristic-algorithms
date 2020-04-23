@@ -54,6 +54,9 @@ impl BlockMatrix {
         }
     }
 
+    process_blocks_decl!(process_blocks[] slice => ArrayView2<Value>);
+    process_blocks_decl!(process_blocks_mut[mut] slice_mut => ArrayViewMut2<Value>);
+
     pub fn to_full_size(&self, dim: Ix2) -> Array2<Value> {
         let mut arr = Array2::zeros(dim);
 
@@ -78,8 +81,28 @@ impl BlockMatrix {
         self
     }
 
-    process_blocks_decl!(process_blocks[] slice => ArrayView2<Value>);
-    process_blocks_decl!(process_blocks_mut[mut] slice_mut => ArrayViewMut2<Value>);
+    pub fn with_block_size(
+        &self,
+        block_height: usize,
+        block_width: usize,
+        outer_height: usize,
+        outer_width: usize,
+    ) -> Self {
+        let (current_height, current_width) = self.values.dim();
+
+        let mut new = Self::zeros(block_height, block_width, outer_height, outer_width);
+        let (new_height, new_width) = new.values.dim();
+
+        let height = std::cmp::min(new_height, current_height);
+        let width = std::cmp::min(new_width, current_width);
+
+        let slice = s![..height, ..width];
+        new.values
+            .slice_mut(slice)
+            .assign(&self.values.slice(slice));
+
+        new
+    }
 
     pub fn distance_from(&self, other: &Array2<Value>) -> Distance {
         let (n, m) = other.dim();
