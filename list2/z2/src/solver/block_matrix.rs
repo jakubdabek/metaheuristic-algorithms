@@ -1,16 +1,16 @@
 use super::{Distance, Value};
 use ndarray::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::prelude::*;
 use rand_distr::Normal;
 use z2::util;
 
 const ALLOWED_VALUES: &[Value] = &[0, 32, 64, 128, 160, 192, 223, 255];
 
 #[derive(Debug, Clone)]
-pub(super) struct BlockMatrix {
-    values: Array2<Value>,
-    block_height: usize,
-    block_width: usize,
+pub(crate) struct BlockMatrix {
+    pub values: Array2<Value>,
+    pub block_height: usize,
+    pub block_width: usize,
 }
 
 macro_rules! process_blocks_decl {
@@ -68,15 +68,16 @@ impl BlockMatrix {
         arr
     }
 
-    pub fn perturb_values(mut self) -> Self {
-        let mut rng = thread_rng();
+    pub fn perturb_values(mut self, rng: &mut impl Rng) -> Self {
+        let (h, w) = self.values.dim();
+        let i = rng.gen_range(0, h);
+        let j = rng.gen_range(0, w);
+
         let normal = Normal::new(0.0_f64, 2.0).unwrap();
-        for block_value in self.values.iter_mut() {
-            if rng.gen_bool(0.2) {
-                let moved = rng.sample(normal).round() as i8 + (*block_value as i8);
-                *block_value = util::clamp(moved, 0, ALLOWED_VALUES.len() as i8 - 1) as u8;
-            }
-        }
+
+        let block_value = &mut self.values[[i, j]];
+        let moved = rng.sample(normal).round() as i8 + (*block_value as i8);
+        *block_value = util::clamp(moved, 0, ALLOWED_VALUES.len() as i8 - 1) as u8;
 
         self
     }

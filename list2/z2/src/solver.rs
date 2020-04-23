@@ -3,19 +3,20 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use rand::distributions::Uniform;
 use rand::prelude::*;
+use std::collections::HashSet;
 use std::convert::TryInto;
 use std::fmt;
 use std::io::BufRead;
 use std::time::{Duration, Instant};
 
-type Value = u8;
-type ValueMatrix = Array2<Value>;
-type Distance = f64;
+pub(crate) type Value = u8;
+pub(crate) type ValueMatrix = Array2<Value>;
+pub(crate) type Distance = f64;
 
 mod block_matrix;
 
 #[derive(Debug, Clone)]
-pub struct Solver {
+pub(crate) struct Solver {
     values: ValueMatrix,
     minimal_block_size: usize,
     time_limit: Duration,
@@ -28,7 +29,7 @@ struct Solution {
 }
 
 #[derive(Debug, Clone)]
-pub struct FullSizeSolution {
+pub(crate) struct FullSizeSolution {
     pub matrix: ValueMatrix,
     pub distance: Distance,
 }
@@ -55,11 +56,16 @@ impl Solver {
         }
     }
 
-    fn randomly_better(current: Distance, next: Distance, temperature: f64, rng: &mut impl Rng) -> bool {
+    fn randomly_better(
+        current: Distance,
+        next: Distance,
+        temperature: f64,
+        rng: &mut impl Rng,
+    ) -> bool {
         f64::exp((next - current) / temperature) < rng.gen()
     }
 
-    pub fn search(&self) -> FullSizeSolution {
+    pub fn search(&self) -> (BlockMatrix, FullSizeSolution) {
         let start_time = Instant::now();
 
         let (h, w) = self.values.dim();
@@ -67,18 +73,13 @@ impl Solver {
 
         let initial = BlockMatrix::zeros(self.minimal_block_size, self.minimal_block_size, h, w);
         let initial_distance = initial.distance_from(values);
-        let mut best = Solution::new(
-            initial,
-            initial_distance,
-        );
+        let mut best = Solution::new(initial, initial_distance);
 
         let mut current = best.clone();
 
-        let mut rng = thread_rng();
+        let rng = &mut thread_rng();
         let block_height_dist = Uniform::new(self.minimal_block_size, h);
         let block_width_dist = Uniform::new(self.minimal_block_size, w);
-
-        let mut temperature = 273.15;
 
         let iter = std::iter::from_fn({
             let time_limit = self.time_limit;
@@ -86,7 +87,12 @@ impl Solver {
             move || {
                 let elapsed = start_time.elapsed();
                 if iters % 10000 == 0 {
-                    eprintln!("{:12} iters in {:.6?}, avg {:6.3?}", iters, elapsed, elapsed / iters);
+                    eprintln!(
+                        "{:12} iters in {:.6?}, avg {:6.3?}",
+                        iters,
+                        elapsed,
+                        elapsed / iters
+                    );
                 }
                 iters += 1;
                 if elapsed < time_limit {
@@ -97,30 +103,43 @@ impl Solver {
             }
         });
 
+        let mut size_tabu = HashSet::new();
+        let mut fail_counter = 0;
+
         for () in iter {
-            let next = if rng.gen_bool(0.01) {
-                current.matrix.with_block_size(
-                    rng.sample(block_height_dist),
-                    rng.sample(block_width_dist),
-                    h,
-                    w,
-                )
+            let blocks = current.matrix.values.dim();
+            let block_count = blocks.0 * blocks.1;
+
+            let next = if rng.gen_bool(0.01) || fail_counter > block_count * 10 {
+                size_tabu.insert(blocks);
+
+                let sizes = std::iter::repeat_with(|| {
+                    (rng.sample(block_height_dist), rng.sample(block_width_dist))
+                });
+
+                if let Some((bh, bw)) = sizes.take(w * h).find(|s| !size_tabu.contains(s)) {
+                    current.matrix.with_block_size(bh, bw, h, w)
+                } else {
+                    break;
+                }
             } else {
-                current.matrix.clone().perturb_values()
+                current.matrix.clone().perturb_values(rng)
             };
 
             let next_distance = next.distance_from(values);
-            if next_distance < current.distance || Self::randomly_better(current.distance, next_distance, temperature, &mut rng) {
+            if next_distance < current.distance {
+                fail_counter = 0;
                 current = Solution::new(next, next_distance);
                 if current.distance < best.distance {
                     best = current.clone();
                 }
+            } else {
+                fail_counter += 1;
             }
-
-            temperature *= 0.9;
         }
 
-        best.to_full_size(values.raw_dim())
+        let full_size = best.to_full_size(values.raw_dim());
+        (best.matrix, full_size)
     }
 }
 
