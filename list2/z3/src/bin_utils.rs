@@ -1,7 +1,7 @@
-use std::io::stdin;
-use crate::board::{BoardCreationError, Board};
-use std::time::Duration;
+use crate::board::{Board, BoardCreationError};
 use crate::direction::Direction;
+use std::io::stdin;
+use std::time::Duration;
 
 pub type Result = std::result::Result<(), BoardCreationError>;
 

@@ -1,6 +1,7 @@
 use crate::board::Board;
 use crate::direction::Direction;
 use crate::path::Path;
+use crate::utils;
 use rand::prelude::*;
 use std::collections::BTreeSet;
 use std::time::{Duration, Instant};
@@ -20,22 +21,11 @@ pub fn search(board: &Board, time_limit: Duration) -> Vec<Direction> {
     eprintln!("initial solution: {:?}", current.moves.len());
     let mut best_global = current.clone();
 
-    let mut iters = 1;
-    let limiter = std::iter::from_fn(|| {
-        let elapsed = start_time.elapsed();
-        eprintln!("{:?}, {:?}", elapsed, elapsed / iters);
-        iters += 1;
-
-        if elapsed < time_limit {
-            Some(())
-        } else {
-            None
-        }
-    });
+    let limiter = utils::make_limiter(start_time, time_limit, 2);
 
     let mut fails = 0;
 
-    for _ in limiter {
+    for () in limiter {
         let tabu_size = f64::max(
             1.0,
             tabu_size as f64 * tabu_size as f64 / best_global.cost() as f64,
