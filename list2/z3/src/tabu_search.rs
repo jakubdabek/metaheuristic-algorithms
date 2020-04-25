@@ -1,87 +1,26 @@
 use crate::board::Board;
-use crate::point::Point;
-use crate::tabu_search::direction::{Direction, DIRECTIONS};
-use crate::tabu_search::solution::{PartialPath, Solution, SolutionWithCost};
-use itertools::Itertools;
-use rand::distributions::Standard;
+use crate::tabu_search::direction::Direction;
+use crate::tabu_search::solution::Path;
 use rand::prelude::*;
 use std::collections::BTreeSet;
-use std::convert::{identity, TryInto};
 use std::time::{Duration, Instant};
 
 pub(crate) mod direction;
 mod solution;
 
-fn starting_solution(board: &Board) -> SolutionWithCost {
-    let (h, w) = board.fields.dim();
-    let mut moves = Vec::with_capacity(h * w);
-    let mut current_pos = board.agent_position;
-
-    let dirs = DIRECTIONS;
-
-    for (check_dir, move_dir) in dirs.iter().cycle().tuple_windows() {
-        loop {
-            let check: Point = check_dir.move_point(current_pos);
-            if board.is_exit(check) {
-                moves.push(*check_dir);
-                let cost = moves.len().try_into().unwrap();
-                return SolutionWithCost {
-                    solution: Solution { moves },
-                    cost,
-                };
-            }
-
-            let move_point = move_dir.move_point(current_pos);
-            if !board.in_bounds(move_point) {
-                break;
-            }
-
-            moves.push(*move_dir);
-            current_pos = move_point;
-        }
-    }
-
-    unreachable!("Can't leave until a solution is found")
-}
-
-struct Path {
-    moves: Vec<Direction>,
-    ending_point: Point,
-}
-
-fn generate_valid_path(
-    starting_point: Point,
-    board: &Board,
-    max_length: usize,
-) -> (PartialPath, bool) {
-    let moves = thread_rng()
-        .sample_iter(Standard)
-        .take(max_length)
-        .collect();
-    PartialPath::verify(starting_point, moves, board)
-}
-
-fn generate_path_to_exit(board: &Board) -> Path {
-    let current_pos = board.agent_position;
-    let (h, w) = board.fields.dim();
-
-    loop {
-        let (partial_path, exited) = generate_valid_path(current_pos, board, h + w);
-        todo!();
-    }
-}
-
-pub fn search(board: &Board, time_limit: Duration) -> SolutionWithCost {
+pub fn search(board: &Board, time_limit: Duration) -> Vec<Direction> {
     let start_time = Instant::now();
 
     let (h, w) = board.fields.dim();
-    let tabu_size = usize::pow((h + w) as _, 2);
+    let tabu_size = usize::pow(std::cmp::min(h, w) as _, 1);
     let mut tabu = BTreeSet::new();
 
     let mut tmp_vec = Vec::with_capacity(tabu_size);
 
-    let mut current = starting_solution(board);
-    eprintln!("initial solution: {:?}", current);
+    let mut current = Path::new_to_exit(board);
+    eprintln!("initial solution: {:?}", current.moves.len());
+    current.remove_redundancies();
+    eprintln!("initial solution: {:?}", current.moves.len());
     let mut best_global = current.clone();
 
     let mut iters = 1;
@@ -100,32 +39,30 @@ pub fn search(board: &Board, time_limit: Duration) -> SolutionWithCost {
     let mut fails = 0;
 
     for _ in limiter {
-        let neighbours = current
-            .solution
-            .neighbours_swap(best_global.cost)
+        let neighbours =
+            std::iter::repeat_with(|| current.neighbour_by_swap_extend(best_global.cost(), board));
+        let neighbours = neighbours
             .take(tabu_size * tabu_size)
             .filter(|s| !tabu.contains(s))
             .take(tabu_size);
 
         tmp_vec.clear();
-        tmp_vec.extend(
-            neighbours
-                .map(|s| s.remove_redundancies())
-                .map(|s| s.into_solution_with_cost(board)),
-        );
+        tmp_vec.extend(neighbours.map(|mut s| {
+            s.remove_redundancies();
+            s
+        }));
 
-        let best = tmp_vec
-            .iter()
-            .filter_map(|s| s.as_ref().ok())
-            .min_by_key(|s| s.cost);
+        let best = tmp_vec.iter().min_by_key(|s| s.cost());
 
         if let Some(best) = best {
-            if best.cost < current.cost || (best.cost == current.cost && thread_rng().gen_bool(0.3))
+            if best.cost() < current.cost()
+                || (best.cost() == current.cost() && thread_rng().gen_bool(0.3))
             {
                 current = best.clone();
             }
-            if current.cost < best_global.cost {
-                eprintln!("{:?} -> {:?}", best_global.cost, current.cost);
+            if current.cost() < best_global.cost() {
+                eprintln!("{:?} -> {:?}", best_global.cost(), current.cost());
+                fails = fails / 2;
                 best_global = current.clone();
             } else {
                 fails += 1;
@@ -136,15 +73,11 @@ pub fn search(board: &Board, time_limit: Duration) -> SolutionWithCost {
         }
 
         if fails > std::cmp::min(h, w) {
-            return best_global;
+            return best_global.moves;
         }
 
-        tabu.extend(
-            tmp_vec
-                .drain(..)
-                .map(|s| s.map(|s| s.into_inner()).unwrap_or_else(identity)),
-        );
+        tabu.extend(tmp_vec.drain(..));
     }
 
-    best_global
+    best_global.moves
 }

@@ -23,13 +23,13 @@ pub struct Board {
 impl Board {
     #[inline]
     pub fn in_bounds(&self, point: Point) -> bool {
-        let (w, h) = self.fields.dim();
+        let (h, w) = self.fields.dim();
         point.x < (w - 1) as _ && point.y < (h - 1) as _ && point.x > 0 && point.y > 0
     }
 
     #[inline]
     pub fn is_next_to_edge(&self, point: Point) -> bool {
-        let (w, h) = self.fields.dim();
+        let (h, w) = self.fields.dim();
         point.x == 1 || point.x == (w - 2) as _ || point.y == 1 || point.y == (h - 2) as _
     }
 

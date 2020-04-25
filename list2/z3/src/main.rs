@@ -9,8 +9,8 @@ fn main() -> Result<(), BoardCreationError> {
 
     let solution = tabu_search::search(&board, time_limit);
 
-    println!("{}", solution.cost);
-    eprintln!("{:?}", solution.solution.moves);
+    println!("{}", solution.len());
+    eprintln!("{:?}", solution);
 
     Ok(())
 }

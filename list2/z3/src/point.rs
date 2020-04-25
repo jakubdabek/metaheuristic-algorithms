@@ -1,5 +1,6 @@
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
+use std::fmt;
 use std::ops::*;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -12,6 +13,15 @@ impl Point {
     #[inline]
     pub fn new(x: u64, y: u64) -> Self {
         Self { x, y }
+    }
+}
+
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("Point")
+            .field(&self.x)
+            .field(&self.y)
+            .finish()
     }
 }
 
