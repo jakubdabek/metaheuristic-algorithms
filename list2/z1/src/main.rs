@@ -1,8 +1,8 @@
-use std::io::Read;
-use std::time::{Duration, Instant};
-use std::ops::Add;
-use crate::annealing::salomon::{Value, Argument, Scalar};
+use crate::annealing::salomon::{Argument, Scalar, Value};
 use crate::annealing::Solution;
+use std::io::Read;
+use std::ops::Add;
+use std::time::{Duration, Instant};
 
 mod annealing;
 

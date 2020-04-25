@@ -1,7 +1,7 @@
 use nalgebra::Vector4;
-use std::ops::RangeInclusive;
-use rand::prelude::*;
 use rand::distributions::Uniform;
+use rand::prelude::*;
+use std::ops::RangeInclusive;
 
 pub type Scalar = f64;
 
@@ -9,9 +9,6 @@ use std::f64 as scalar;
 
 pub type Argument = Vector4<Scalar>;
 pub type Value = f64;
-
-
-pub const NUM_DIMENSIONS: u8 = 4;
 
 #[inline(always)]
 fn length_range_inclusive(range: &RangeInclusive<f64>) -> f64 {
