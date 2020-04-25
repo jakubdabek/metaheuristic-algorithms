@@ -1,12 +1,9 @@
 use crate::board::Board;
-use crate::tabu_search::direction::Direction;
-use crate::tabu_search::solution::Path;
+use crate::direction::Direction;
+use crate::path::Path;
 use rand::prelude::*;
 use std::collections::BTreeSet;
 use std::time::{Duration, Instant};
-
-pub(crate) mod direction;
-mod solution;
 
 pub fn search(board: &Board, time_limit: Duration) -> Vec<Direction> {
     let start_time = Instant::now();
@@ -67,7 +64,7 @@ pub fn search(board: &Board, time_limit: Duration) -> Vec<Direction> {
             }
             if current.cost() < best_global.cost() {
                 eprintln!("{:?} -> {:?}", best_global.cost(), current.cost());
-                fails = fails / 2;
+                fails /= 2;
                 best_global = current.clone();
             } else {
                 fails += 1;

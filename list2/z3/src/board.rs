@@ -1,5 +1,5 @@
+use crate::direction::{Direction, DIRECTIONS};
 use crate::point::Point;
-use crate::tabu_search::direction::{Direction, DIRECTIONS};
 use itertools::{EitherOrBoth, Itertools};
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
