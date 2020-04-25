@@ -136,17 +136,6 @@ impl Path {
     }
 
     pub fn remove_redundancies(&mut self) {
-        let moves = &mut self.moves;
-        let mut i = 0;
-        while i + 2 < moves.len() {
-            if moves[i].inverse() == moves[i + 1] {
-                drop(moves.drain(i..=(i + 1)));
-            } else if moves[i].inverse() == moves[i + 2] {
-                moves.swap(i + 1, i + 2);
-                drop(moves.drain(i..=(i + 1)));
-            } else {
-                i += 1;
-            }
-        }
+        Direction::remove_redundancies(&mut self.moves);
     }
 }

@@ -74,7 +74,7 @@ pub fn search(board: &Board, time_limit: Duration) -> Vec<Direction> {
             fails += 5;
         }
 
-        if fails > std::cmp::min(h, w) {
+        if fails > h + w {
             return best_global.moves;
         }
 

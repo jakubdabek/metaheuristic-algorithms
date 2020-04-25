@@ -36,6 +36,26 @@ impl Direction {
             Direction::Left => point - Point::new(1, 0),
         }
     }
+
+    pub fn remove_redundancies(moves: &mut Vec<Direction>) {
+        let mut i = 0;
+        while i + 2 < moves.len() {
+            if moves[i].inverse() == moves[i + 1] {
+                drop(moves.drain(i..=(i + 1)));
+                if i > 0 {
+                    i -= 1;
+                }
+            } else if moves[i].inverse() == moves[i + 2] {
+                moves.swap(i + 1, i + 2);
+                drop(moves.drain(i..=(i + 1)));
+                if i > 0 {
+                    i -= 1;
+                }
+            } else {
+                i += 1;
+            }
+        }
+    }
 }
 
 impl Distribution<Direction> for Standard {
