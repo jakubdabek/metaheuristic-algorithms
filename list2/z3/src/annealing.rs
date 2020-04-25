@@ -21,7 +21,7 @@ pub fn search(board: &Board, time_limit: Duration) -> Vec<Direction> {
 
     let mut best_global = current.clone();
 
-    let limiter = utils::make_limiter(start_time, time_limit, 10);
+    let limiter = utils::make_limiter_debug(start_time, time_limit, 10);
 
     let rng = &mut thread_rng();
     let mut fails = 0;
