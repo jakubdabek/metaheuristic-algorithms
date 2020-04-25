@@ -39,8 +39,13 @@ pub fn search(board: &Board, time_limit: Duration) -> Vec<Direction> {
     let mut fails = 0;
 
     for _ in limiter {
+        let tabu_size = f64::max(
+            1.0,
+            tabu_size as f64 * tabu_size as f64 / best_global.cost() as f64,
+        );
+        let tabu_size = tabu_size as _;
         let neighbours =
-            std::iter::repeat_with(|| current.neighbour_by_swap_extend(best_global.cost(), board));
+            std::iter::repeat_with(|| current.neighbour_by_swap_extend(tabu_size as _, board));
         let neighbours = neighbours
             .take(tabu_size * tabu_size)
             .filter(|s| !tabu.contains(s))

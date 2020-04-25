@@ -4,12 +4,24 @@ use crate::point::Point;
 use itertools::Itertools as _;
 use rand::distributions::{Standard, Uniform};
 use rand::prelude::*;
+use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord)]
 pub struct Path {
     pub(crate) starting_point: Point,
     pub(crate) ending_point: Point,
     pub(crate) moves: Vec<Direction>,
+}
+
+impl PartialOrd for Path {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(
+            self.starting_point
+                .cmp(&other.starting_point)
+                .then(self.moves.len().cmp(&other.moves.len()))
+                .then_with(|| self.moves.cmp(&other.moves)),
+        )
+    }
 }
 
 fn debug_print_fn(_f: impl FnOnce()) {
