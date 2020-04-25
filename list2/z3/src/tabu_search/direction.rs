@@ -1,4 +1,6 @@
 use crate::point::Point;
+use rand::distributions::{Distribution, Standard};
+use rand::prelude::*;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -25,12 +27,26 @@ impl Direction {
             Direction::Left => Direction::Right,
         }
     }
+
     pub fn move_point(self, point: Point) -> Point {
         match self {
             Direction::Up => point + Point::new(0, 1),
             Direction::Down => point - Point::new(0, 1),
             Direction::Right => point + Point::new(1, 0),
             Direction::Left => point - Point::new(1, 0),
+        }
+    }
+}
+
+impl Distribution<Direction> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Direction {
+        use Direction::*;
+        match rng.gen_range(0, 5) {
+            0 => Up,
+            1 => Down,
+            2 => Right,
+            3 => Left,
+            _ => unreachable!("gen_range produced value out of range"),
         }
     }
 }

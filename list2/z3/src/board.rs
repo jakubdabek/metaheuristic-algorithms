@@ -1,23 +1,86 @@
 use crate::point::Point;
 use crate::tabu_search::direction::{Direction, DIRECTIONS};
+use itertools::{EitherOrBoth, Itertools};
+use ndarray::prelude::*;
+use ndarray::IntoDimension;
 use std::fmt;
 use std::io::BufRead;
 use std::time::Duration;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialOrd, PartialEq, Ord, Eq)]
+pub enum Field {
+    Empty,
+    Wall,
+    Exit,
+}
+
+#[derive(Debug, Clone)]
 pub struct Board {
-    pub bounds: Point,
+    pub fields: Array2<Field>,
     pub agent_position: Point,
-    pub goal_position: Point,
 }
 
 impl Board {
+    #[inline]
     pub fn in_bounds(&self, point: Point) -> bool {
-        point.x < self.bounds.x && point.y < self.bounds.y && point.x > 0 && point.y > 0
+        let (w, h) = self.fields.dim();
+        point.x < (w - 1) as _ && point.y < (h - 1) as _ && point.x > 0 && point.y > 0
     }
 
-    pub fn adjacent(&self, point: Point) -> impl Iterator<Item = (Direction, Point)> {
+    #[inline]
+    pub fn is_next_to_edge(&self, point: Point) -> bool {
+        let (w, h) = self.fields.dim();
+        point.x == 1 || point.x == (w - 2) as _ || point.y == 1 || point.y == (h - 2) as _
+    }
+
+    #[inline]
+    pub fn is_valid_position(&self, point: Point) -> bool {
+        self.in_bounds(point) && !matches!(self.fields[point.into_dimension()], Field::Wall)
+    }
+
+    #[inline]
+    pub fn is_exit(&self, point: Point) -> bool {
+        self.fields
+            .get(point.into_dimension())
+            .map_or(false, |f| matches!(f, Field::Exit))
+    }
+
+    pub fn move_into_exit(&self, point: Point) -> Option<(Direction, Point)> {
+        debug_assert!(self.is_valid_position(point));
+        for &dir in DIRECTIONS {
+            let point = dir.move_point(point);
+            if matches!(self.fields[point.into_dimension()], Field::Exit) {
+                return Some((dir, point));
+            }
+        }
+
+        None
+    }
+
+    pub fn adjacent_positions(&self, point: Point) -> impl Iterator<Item = (Direction, Point)> {
+        assert!(
+            self.in_bounds(point),
+            "only points inbounds have adjacent ones"
+        );
         DIRECTIONS.iter().map(move |&x| (x, x.move_point(point)))
+    }
+
+    pub fn adjacent(&self, point: Point) -> impl Iterator<Item = (Direction, Point, Field)> + '_ {
+        self.adjacent_positions(point)
+            .filter_map(move |(d, p)| self.fields.get(p.into_dimension()).map(|&f| (d, p, f)))
+    }
+
+    pub fn adjacent_in_bounds(
+        &self,
+        point: Point,
+    ) -> impl Iterator<Item = (Direction, Point, Field)> + '_ {
+        debug_assert!(
+            self.in_bounds(point),
+            "adjacent_in_bounds called with out of bounds point"
+        );
+
+        self.adjacent_positions(point)
+            .map(move |(d, p)| (d, p, self.fields[p.into_dimension()]))
     }
 }
 
@@ -71,47 +134,54 @@ impl Board {
         };
 
         let mut agent = None;
-        let mut goal = None;
 
         let on_horizontal_edge = |i| i == n - 1 || i == 0;
         let on_vertical_edge = |j| j == 0 || j == m - 1;
         let on_edge = |i, j| on_horizontal_edge(i) || on_vertical_edge(j);
         let in_corner = |i, j| on_horizontal_edge(i) && on_vertical_edge(j);
 
-        for i in (0..n).rev() {
-            let line: String = lines.next().ok_or(NotEnoughLines)??;
-            let line = line.as_bytes();
-            if line.len() as u64 != m {
-                return Err(InvalidLine);
-            }
+        let mut fields = Array2::from_elem((n as _, m as _), Field::Empty);
 
-            for (c, j) in line.iter().zip(0..) {
+        for it in fields.outer_iter_mut().enumerate().rev().zip_longest(lines) {
+            let (i, mut row, line) = match it {
+                EitherOrBoth::Both((i, row), line) => {
+                    let line = line?;
+                    if line.as_bytes().len() != m as _ {
+                        return Err(InvalidLine);
+                    }
+                    (i as _, row, line)
+                }
+                EitherOrBoth::Left(_) => return Err(NotEnoughLines),
+                EitherOrBoth::Right(_) => break, // too many lines
+            };
+
+            let line = line.as_bytes();
+
+            for ((c, j), field) in line.iter().zip(0..).zip(row.iter_mut()) {
+                use Field::*;
                 match c {
                     b'8' if !on_edge(i, j) => return Err(InvalidGoal),
                     b'8' if in_corner(i, j) => return Err(InvalidGoal),
-                    b'8' if goal.is_some() => return Err(InvalidGoal),
-                    b'8' => goal = Some(Point::new(j, i)),
+                    b'8' => *field = Exit,
 
                     b'5' if on_edge(i, j) => return Err(InvalidAgent),
                     b'5' if agent.is_some() => return Err(InvalidAgent),
                     b'5' => agent = Some(Point::new(j, i)),
 
-                    b'1' if on_edge(i, j) => (),
-                    b'0' if !on_edge(i, j) => (),
+                    b'1' => *field = Wall,
+                    b'0' if !on_edge(i, j) => (), // *field = Empty,
 
                     _ => return Err(InvalidLine),
                 }
             }
         }
 
-        let agent = agent.ok_or(InvalidAgent)?;
-        let goal = goal.ok_or(InvalidGoal)?;
+        let agent_position = agent.ok_or(InvalidAgent)?;
 
         Ok((
             Board {
-                bounds: Point::new(m - 1, n - 1),
-                agent_position: agent,
-                goal_position: goal,
+                fields,
+                agent_position,
             },
             Duration::from_secs(time),
         ))

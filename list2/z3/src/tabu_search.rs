@@ -1,8 +1,9 @@
 use crate::board::Board;
 use crate::point::Point;
-use crate::tabu_search::direction::DIRECTIONS;
-use crate::tabu_search::solution::{Solution, SolutionWithCost};
-use itertools::Itertools as _;
+use crate::tabu_search::direction::{Direction, DIRECTIONS};
+use crate::tabu_search::solution::{PartialPath, Solution, SolutionWithCost};
+use itertools::Itertools;
+use rand::distributions::Standard;
 use rand::prelude::*;
 use std::collections::BTreeSet;
 use std::convert::{identity, TryInto};
@@ -12,7 +13,8 @@ pub(crate) mod direction;
 mod solution;
 
 fn starting_solution(board: &Board) -> SolutionWithCost {
-    let mut moves = Vec::with_capacity((board.bounds.x * board.bounds.y).try_into().unwrap());
+    let (h, w) = board.fields.dim();
+    let mut moves = Vec::with_capacity(h * w);
     let mut current_pos = board.agent_position;
 
     let dirs = DIRECTIONS;
@@ -20,7 +22,7 @@ fn starting_solution(board: &Board) -> SolutionWithCost {
     for (check_dir, move_dir) in dirs.iter().cycle().tuple_windows() {
         loop {
             let check: Point = check_dir.move_point(current_pos);
-            if check == board.goal_position {
+            if board.is_exit(check) {
                 moves.push(*check_dir);
                 let cost = moves.len().try_into().unwrap();
                 return SolutionWithCost {
@@ -42,13 +44,41 @@ fn starting_solution(board: &Board) -> SolutionWithCost {
     unreachable!("Can't leave until a solution is found")
 }
 
+struct Path {
+    moves: Vec<Direction>,
+    ending_point: Point,
+}
+
+fn generate_valid_path(
+    starting_point: Point,
+    board: &Board,
+    max_length: usize,
+) -> (PartialPath, bool) {
+    let moves = thread_rng()
+        .sample_iter(Standard)
+        .take(max_length)
+        .collect();
+    PartialPath::verify(starting_point, moves, board)
+}
+
+fn generate_path_to_exit(board: &Board) -> Path {
+    let current_pos = board.agent_position;
+    let (h, w) = board.fields.dim();
+
+    loop {
+        let (partial_path, exited) = generate_valid_path(current_pos, board, h + w);
+        todo!();
+    }
+}
+
 pub fn search(board: &Board, time_limit: Duration) -> SolutionWithCost {
     let start_time = Instant::now();
 
-    let tabu_size = usize::pow((board.bounds.x + board.bounds.y).try_into().unwrap(), 2);
+    let (h, w) = board.fields.dim();
+    let tabu_size = usize::pow((h + w) as _, 2);
     let mut tabu = BTreeSet::new();
 
-    let mut tmp_vec = Vec::with_capacity(tabu_size.try_into().unwrap());
+    let mut tmp_vec = Vec::with_capacity(tabu_size);
 
     let mut current = starting_solution(board);
     eprintln!("initial solution: {:?}", current);
@@ -105,7 +135,7 @@ pub fn search(board: &Board, time_limit: Duration) -> SolutionWithCost {
             fails += 5;
         }
 
-        if fails > std::cmp::min(board.bounds.x, board.bounds.y) {
+        if fails > std::cmp::min(h, w) {
             return best_global;
         }
 

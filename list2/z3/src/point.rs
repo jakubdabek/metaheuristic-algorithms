@@ -1,3 +1,5 @@
+use ndarray::prelude::*;
+use ndarray::IntoDimension;
 use std::ops::*;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -10,6 +12,14 @@ impl Point {
     #[inline]
     pub fn new(x: u64, y: u64) -> Self {
         Self { x, y }
+    }
+}
+
+impl IntoDimension for &'_ Point {
+    type Dim = Ix2;
+
+    fn into_dimension(self) -> Self::Dim {
+        Dim([self.y as _, self.x as _])
     }
 }
 

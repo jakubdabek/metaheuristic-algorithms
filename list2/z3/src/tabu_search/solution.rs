@@ -1,9 +1,59 @@
 use super::direction::Direction;
 use crate::board::Board;
+use crate::point::Point;
 use itertools::Itertools as _;
 use rand::distributions::Uniform;
 use rand::prelude::*;
-use std::convert::TryInto;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PartialPath {
+    starting_point: Point,
+    ending_point: Point,
+    moves: Vec<Direction>,
+}
+
+impl PartialPath {
+    pub fn verify(starting_point: Point, mut moves: Vec<Direction>, board: &Board) -> (Self, bool) {
+        debug_assert!(
+            board.is_valid_position(starting_point),
+            "starting point must be valid!"
+        );
+
+        let mut current_pos = starting_point;
+        for (count, &dir) in moves.iter().enumerate() {
+            if let Some((exit_dir, ending_point)) = board.move_into_exit(current_pos) {
+                moves.truncate(count);
+                moves.push(exit_dir);
+
+                return (
+                    Self {
+                        starting_point,
+                        ending_point,
+                        moves,
+                    },
+                    true,
+                );
+            }
+
+            let new_pos = dir.move_point(current_pos);
+            if !board.is_valid_position(new_pos) {
+                moves.truncate(count);
+                break;
+            }
+
+            current_pos = new_pos;
+        }
+
+        (
+            Self {
+                starting_point,
+                ending_point: current_pos,
+                moves,
+            },
+            false,
+        )
+    }
+}
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct Solution {
@@ -27,8 +77,8 @@ impl Solution {
     }
 
     pub fn remove_redundancies(self) -> Self {
-        let mut i = 0;
         let mut moves = self.moves;
+        let mut i = 0;
         while i + 2 < moves.len() {
             if moves[i].inverse() == moves[i + 1] {
                 drop(moves.drain(i..=(i + 1)));
@@ -43,42 +93,11 @@ impl Solution {
         Self { moves }
     }
 
-    pub fn into_solution_with_cost(mut self, board: &Board) -> Result<SolutionWithCost, Solution> {
-        let mut current_pos = board.agent_position;
-        for (count, &dir) in self.moves.iter().enumerate() {
-            if let Some((goal_dir, _)) = board
-                .adjacent(current_pos)
-                .find(|&(_, p)| p == board.goal_position)
-            {
-                self.moves.truncate(count);
-                self.moves.push(goal_dir);
-                let cost = self.moves.len().try_into().unwrap();
 
-                return Ok(SolutionWithCost {
-                    solution: self,
-                    cost,
-                });
-            }
-
-            let new_pos = dir.move_point(current_pos);
-            if !board.in_bounds(new_pos) {
-                return Err(self);
-            }
-
-            current_pos = new_pos;
-        }
-
-        let cost = if current_pos == board.goal_position {
-            self.moves.len().try_into().unwrap()
-        } else {
-            std::u64::MAX
-        };
-
-        Ok(SolutionWithCost {
-            solution: self,
-            cost,
-        })
+    pub fn into_solution_with_cost(self, board: &Board) -> Result<SolutionWithCost, Solution> {
+        todo!("remove")
     }
+
 }
 
 type Cost = u64;
