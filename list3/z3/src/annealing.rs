@@ -9,7 +9,11 @@ fn randomly_better(current: u64, next: u64, temperature: f64, rng: &mut impl Rng
     f64::exp((next as f64 - current as f64) / temperature) < rng.gen()
 }
 
-pub fn search(board: &Board, time_limit: Duration) -> Vec<Direction> {
+pub fn search(
+    board: &Board,
+    _: Option<(u64, Vec<Vec<Direction>>)>,
+    time_limit: Duration,
+) -> Vec<Direction> {
     let start_time = Instant::now();
 
     let (h, w) = board.fields.dim();

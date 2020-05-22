@@ -91,6 +91,7 @@ pub enum BoardCreationError {
     NotEnoughLines,
     InvalidGoal,
     InvalidAgent,
+    InvalidSolution,
     IOError(String),
 }
 
@@ -102,6 +103,7 @@ impl fmt::Display for BoardCreationError {
             BoardCreationError::NotEnoughLines => write!(f, "Not enough lines"),
             BoardCreationError::InvalidGoal => write!(f, "Invalid goal"),
             BoardCreationError::InvalidAgent => write!(f, "Invalid agent"),
+            BoardCreationError::InvalidSolution => write!(f, "Invalid solution"),
             BoardCreationError::IOError(e) => write!(f, "{}", e),
         }
     }
@@ -115,8 +117,10 @@ impl From<std::io::Error> for BoardCreationError {
     }
 }
 
+pub type FromReadOk = (Board, Option<(u64, Vec<Vec<Direction>>)>, Duration);
+
 impl Board {
-    pub fn try_from_read<R: BufRead>(reader: R) -> Result<(Board, Duration), BoardCreationError> {
+    pub fn try_from_read<R: BufRead>(reader: R) -> Result<FromReadOk, BoardCreationError> {
         use BoardCreationError::*;
 
         let mut lines = reader.lines();
@@ -128,8 +132,9 @@ impl Board {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| InvalidHeader)?;
 
-        let (time, n, m) = match *header.as_slice() {
-            [time, n, m] if time > 0 => (time, n, m),
+        let (time, n, m, sp) = match *header.as_slice() {
+            [time, n, m] if time > 0 => (time, n, m, None),
+            [time, n, m, s, p] if time > 0 && p >= s => (time, n, m, Some((s, p))),
             _ => return Err(InvalidHeader),
         };
 
@@ -142,7 +147,12 @@ impl Board {
 
         let mut fields = Array2::from_elem((n as _, m as _), Field::Empty);
 
-        for it in fields.outer_iter_mut().enumerate().rev().zip_longest(lines) {
+        for it in fields
+            .outer_iter_mut()
+            .enumerate()
+            .rev()
+            .zip_longest(lines.by_ref())
+        {
             let (i, mut row, line) = match it {
                 EitherOrBoth::Both((i, row), line) => {
                     let line = line?;
@@ -152,7 +162,9 @@ impl Board {
                     (i as _, row, line)
                 }
                 EitherOrBoth::Left(_) => return Err(NotEnoughLines),
-                EitherOrBoth::Right(_) => break, // too many lines
+                EitherOrBoth::Right(_) => {
+                    unreachable!("should have exited the loop after processing all rows")
+                }
             };
 
             let line = line.as_bytes();
@@ -160,7 +172,6 @@ impl Board {
             for ((c, j), field) in line.iter().zip(0..).zip(row.iter_mut()) {
                 use Field::*;
                 match c {
-                    b'8' if !on_edge(i, j) => return Err(InvalidGoal),
                     b'8' if in_corner(i, j) => return Err(InvalidGoal),
                     b'8' => *field = Exit,
 
@@ -174,15 +185,42 @@ impl Board {
                     _ => return Err(InvalidLine),
                 }
             }
+
+            if i == 0 {
+                // processed all rows
+                break;
+            }
         }
 
         let agent_position = agent.ok_or(InvalidAgent)?;
+
+        let sp = sp.map(|(s, p)| {
+            let mut solutions = Vec::with_capacity(s as _);
+            solutions.resize_with(s as _, Vec::new);
+
+            for it in solutions.iter_mut().zip_longest(lines) {
+                let (solution, line) = match it {
+                    EitherOrBoth::Both(solution, line) => (solution, line?),
+                    EitherOrBoth::Left(_) => return Err(NotEnoughLines),
+                    EitherOrBoth::Right(_) => break, // too many lines
+                };
+                solution.reserve_exact(line.as_bytes().len());
+                line.bytes().try_for_each(|c| {
+                    Direction::parse(c)
+                        .ok_or(InvalidSolution)
+                        .map(|c| solution.push(c))
+                })?;
+            }
+
+            Ok((p, solutions))
+        });
 
         Ok((
             Board {
                 fields,
                 agent_position,
             },
+            sp.transpose()?,
             Duration::from_secs(time),
         ))
     }

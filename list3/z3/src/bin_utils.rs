@@ -5,12 +5,14 @@ use std::time::Duration;
 
 pub type Result = std::result::Result<(), BoardCreationError>;
 
-pub fn main(f: impl FnOnce(&Board, Duration) -> Vec<Direction>) -> Result {
-    let (board, time_limit) = Board::try_from_read(stdin().lock())?;
+pub fn main(
+    f: impl FnOnce(&Board, Option<(u64, Vec<Vec<Direction>>)>, Duration) -> Vec<Direction>,
+) -> Result {
+    let (board, initial_solutions, time_limit) = Board::try_from_read(stdin().lock())?;
 
-    eprintln!("{:?}", board);
+    // eprintln!("{:?}", board);
 
-    let solution = f(&board, time_limit);
+    let solution = f(&board, initial_solutions, time_limit);
 
     println!("{}", solution.len());
     eprintln!("{:?}", solution);

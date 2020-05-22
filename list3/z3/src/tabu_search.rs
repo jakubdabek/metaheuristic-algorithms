@@ -6,7 +6,11 @@ use rand::prelude::*;
 use std::collections::BTreeSet;
 use std::time::{Duration, Instant};
 
-pub fn search(board: &Board, time_limit: Duration) -> Vec<Direction> {
+pub fn search(
+    board: &Board,
+    _: Option<(u64, Vec<Vec<Direction>>)>,
+    time_limit: Duration,
+) -> Vec<Direction> {
     let start_time = Instant::now();
 
     let (h, w) = board.fields.dim();

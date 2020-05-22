@@ -71,6 +71,18 @@ impl Distribution<Direction> for Standard {
     }
 }
 
+impl Direction {
+    pub fn parse(c: u8) -> Option<Self> {
+        match c {
+            b'U' => Some(Self::Up),
+            b'D' => Some(Self::Down),
+            b'R' => Some(Self::Right),
+            b'L' => Some(Self::Left),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for Direction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
