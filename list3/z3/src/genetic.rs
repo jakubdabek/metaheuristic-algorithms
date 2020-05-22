@@ -50,7 +50,6 @@ pub fn search(
     let mutation_probability_dist = Bernoulli::from_ratio(1, 20).unwrap();
 
     let mut best_cost = population.first().map(|p| p.get_cost()).unwrap();
-    let mut fails = 0;
 
     for () in limiter {
         population.sort_by_key(|p| p.get_cost());
@@ -58,13 +57,6 @@ pub fn search(
         if current_best < best_cost {
             eprintln!("{:?} => {:?}", best_cost, current_best);
             best_cost = current_best;
-            fails = 0;
-        } else {
-            fails += 1;
-            let limit = std::cmp::max(h, w) * 3;
-            if fails > limit * limit {
-                break;
-            }
         }
         population.truncate(generation_size);
 
