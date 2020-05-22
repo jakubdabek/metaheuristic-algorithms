@@ -178,4 +178,17 @@ impl Path {
 
         Self::new(p1.starting_point, moves, board)
     }
+
+    pub fn mutate_swap(
+        path: &Self,
+        board: &Board,
+        positions: impl Iterator<Item = (usize, usize)>,
+    ) -> Self {
+        let mut moves = path.moves.clone();
+        for (pos1, pos2) in positions {
+            moves.swap(pos1, pos2);
+        }
+
+        Self::new(path.starting_point, moves, board)
+    }
 }
