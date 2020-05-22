@@ -32,20 +32,20 @@ pub fn search(
     let mut temperature = 273.15;
 
     for () in limiter {
-        let mut next = current.neighbour_by_swap_extend(best_global.cost(), board);
+        let mut next = current.neighbour_by_swap_extend(best_global.get_cost(), board);
         next.remove_redundancies();
-        let next_cost = next.cost();
+        let next_cost = next.get_cost();
 
-        if next_cost < current.cost()
-            || randomly_better(current.cost(), next_cost, temperature, rng)
+        if next_cost < current.get_cost()
+            || randomly_better(current.get_cost(), next_cost, temperature, rng)
         {
-            eprintln!("{:?} -> {:?}", current.cost(), next.cost());
+            eprintln!("{:?} -> {:?}", current.get_cost(), next.get_cost());
             current = next;
 
             fails /= 2;
 
-            if current.cost() < best_global.cost() {
-                eprintln!("{:?} => {:?}", best_global.cost(), current.cost());
+            if current.get_cost() < best_global.get_cost() {
+                eprintln!("{:?} => {:?}", best_global.get_cost(), current.get_cost());
                 best_global = current.clone();
                 fails /= 4;
             }

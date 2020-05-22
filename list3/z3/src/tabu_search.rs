@@ -32,7 +32,7 @@ pub fn search(
     for () in limiter {
         let tabu_size = f64::max(
             1.0,
-            tabu_size as f64 * tabu_size as f64 / best_global.cost() as f64,
+            tabu_size as f64 * tabu_size as f64 / best_global.get_cost() as f64,
         );
         let tabu_size = tabu_size as _;
         let neighbours =
@@ -48,16 +48,16 @@ pub fn search(
             s
         }));
 
-        let best = tmp_vec.iter().min_by_key(|s| s.cost());
+        let best = tmp_vec.iter().min_by_key(|s| s.get_cost());
 
         if let Some(best) = best {
-            if best.cost() < current.cost()
-                || (best.cost() == current.cost() && thread_rng().gen_bool(0.3))
+            if best.get_cost() < current.get_cost()
+                || (best.get_cost() == current.get_cost() && thread_rng().gen_bool(0.3))
             {
                 current = best.clone();
             }
-            if current.cost() < best_global.cost() {
-                eprintln!("{:?} -> {:?}", best_global.cost(), current.cost());
+            if current.get_cost() < best_global.get_cost() {
+                eprintln!("{:?} -> {:?}", best_global.get_cost(), current.get_cost());
                 fails /= 2;
                 best_global = current.clone();
             } else {

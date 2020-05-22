@@ -11,6 +11,7 @@ pub struct Path {
     pub(crate) starting_point: Point,
     pub(crate) ending_point: Point,
     pub(crate) moves: Vec<Direction>,
+    pub(crate) cost: Option<u64>,
 }
 
 impl PartialOrd for Path {
@@ -29,12 +30,26 @@ fn debug_print_fn(_f: impl FnOnce()) {
 }
 
 impl Path {
+    pub fn new(starting_point: Point, moves: Vec<Direction>, board: &Board) -> Self {
+        let mut path = Self {
+            starting_point,
+            ending_point: starting_point,
+            moves,
+            cost: None,
+        };
+
+        path.verify(0, board);
+
+        path
+    }
+
     pub fn new_to_exit(board: &Board) -> Self {
         let (h, w) = board.fields.dim();
         let mut path = Path {
             starting_point: board.agent_position,
             ending_point: board.agent_position,
             moves: Vec::with_capacity(h * w),
+            cost: None,
         };
 
         path.extend_to_exit(board);
@@ -42,8 +57,8 @@ impl Path {
     }
 
     #[inline]
-    pub fn cost(&self) -> u64 {
-        self.moves.len() as _
+    pub fn get_cost(&self) -> u64 {
+        self.cost.unwrap_or(std::u64::MAX)
     }
 
     fn extend_to_exit(&mut self, board: &Board) {
@@ -77,6 +92,7 @@ impl Path {
                 self.moves.truncate(index);
                 self.moves.push(exit_dir);
                 self.ending_point = ending_point;
+                self.cost = Some((index + 1) as _);
 
                 debug_print_fn(|| {
                     eprintln!(
@@ -104,6 +120,7 @@ impl Path {
         }
 
         self.ending_point = current_pos;
+        self.cost = None;
         debug_print_fn(|| {
             eprintln!(
                 "verified all:          {} {:?}",
@@ -137,5 +154,28 @@ impl Path {
 
     pub fn remove_redundancies(&mut self) {
         Direction::remove_redundancies(&mut self.moves);
+    }
+}
+
+impl Path {
+    pub fn recombine_splice(
+        p1: &Self,
+        p2: &Self,
+        start1: usize,
+        start2: usize,
+        end2: usize,
+        board: &Board,
+    ) -> Self {
+        let len = end2 - start2;
+        let cap = std::cmp::max(p1.moves.len(), start1 + len);
+        let mut moves = Vec::with_capacity(cap);
+
+        moves.extend_from_slice(&p1.moves[..start1]);
+        moves.extend_from_slice(&p2.moves[start2..end2]);
+        if let Some(s) = p1.moves.get(start1 + len..) {
+            moves.extend_from_slice(s);
+        }
+
+        Self::new(p1.starting_point, moves, board)
     }
 }
