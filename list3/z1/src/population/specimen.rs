@@ -1,6 +1,6 @@
 use super::{Argument, Scalar, SIZE};
 
-pub const GENOME_LENGTH: i64 = 40;
+pub const GENOME_LENGTH: i64 = 20;
 pub const GENOME_MASK: i64 = (1 << GENOME_LENGTH) - 1;
 pub const MAX_GENOME_VALUE: i64 = (1 << GENOME_LENGTH) - 2;
 

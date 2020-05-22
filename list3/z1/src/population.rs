@@ -15,7 +15,7 @@ pub struct Solution {
 
 impl Solution {
     fn new(specimen: &Specimen, argument: Argument, value: Value) -> Self {
-        Self { specimen: specimen.clone(), argument, value }
+        Self { specimen: *specimen, argument, value }
     }
 }
 
@@ -69,7 +69,7 @@ impl SpecimenWithValue {
     }
 }
 
-const GENERATION_SIZE: usize = 5000;
+const GENERATION_SIZE: usize = 500;
 
 #[derive(Debug, PartialOrd, PartialEq)]
 struct AssertOrd<T> {
@@ -115,7 +115,7 @@ pub fn search(starting_point: Argument, fitness: XsYang, time_limit: Instant) ->
     let recombination_choice_dist = Bernoulli::from_ratio(1, 3).unwrap();
     let genome_size_dist = Uniform::new(0, SIZE);
     let mutation_choice_dist = Bernoulli::from_ratio(1, 10).unwrap();
-    let genome_mutation_probability_dist = Bernoulli::from_ratio(1, 1000).unwrap();
+    let genome_mutation_probability_dist = Bernoulli::from_ratio(1, 100).unwrap();
 
     let mut iters = 0;
     while Instant::now() < time_limit {
